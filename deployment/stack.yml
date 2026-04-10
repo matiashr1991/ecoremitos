@@ -16,13 +16,17 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DATABASE_URL: ${DATABASE_URL}
 
+      BETTER_AUTH_URL: https://${DOMAIN}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+
     networks:
       - web
       - trazabilidad_internal
 
     # Ajustá o eliminá este volumen si tu app no guarda uploads/archivos
     volumes:
-      - /opt/stacks/trazabilidad/data/uploads:/app/uploads
+      - /opt/stacks/trazabilidad/data/uploads:/app/public/uploads
+      - /opt/stacks/trazabilidad/data/audit-archive:/app/audit-archive
 
     deploy:
       replicas: 1
