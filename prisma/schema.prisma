@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String      @id @default(cuid())
+  name          String
+  email         String      @unique
+  emailVerified Boolean     @default(false)
+  image         String?
+  role          UserRole    @default(control)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  delegacionId  Int?
+  deletedAt     DateTime?   @map("deleted_at")
+  accounts      Account[]
+  sessions      Session[]
+  delegacion    Delegacion? @relation(fields: [delegacionId], references: [id])
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+model Delegacion {
+  id        Int       @id @default(autoincrement())
+  nombre    String    @unique @db.VarChar(150)
+  email     String?   @db.VarChar(255)
+  telefono  String?   @db.VarChar(50)
+  direccion String?
+  activa    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  guias     Guia[]
+  remitos   Remito[]
+  usuarios  User[]
+
+  @@map("delegaciones")
+}
+
+model Titular {
+  id          Int       @id @default(autoincrement())
+  razonSocial String    @map("razon_social") @db.VarChar(255)
+  cuit        String    @unique @db.VarChar(13)
+  email       String?   @db.VarChar(255)
+  telefono    String?   @db.VarChar(50)
+  direccion   String?
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  guias       Guia[]
+
+  @@map("titulares")
+}
+
+model Guia {
+  id               Int         @id @default(autoincrement())
+  nrguia           Int         @unique
+  tipo             GuiaTipo    @default(normal)
+  estado           GuiaEstado  @default(en_blanco)
+  delegacionId     Int?        @map("delegacion_id")
+  titularId        Int?        @map("titular_id")
+  destino          String?     @db.VarChar(255)
+  fechaCarga       DateTime    @default(now()) @map("fecha_carga") @db.Date
+  fechaEmision     DateTime?   @map("fecha_emision") @db.Date
+  fechaVencimiento DateTime?   @map("fecha_vencimiento") @db.Date
+  fechaEntrega     DateTime?   @map("fecha_entrega") @db.Date
+  deposito         Boolean     @default(false)
+  devuelto         Boolean     @default(false)
+  observaciones    String?
+  createdBy        String?     @map("created_by")
+  updatedBy        String?     @map("updated_by")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  deletedAt        DateTime?   @map("deleted_at")
+  prorrogada       Boolean     @default(false)
+  delegacion       Delegacion? @relation(fields: [delegacionId], references: [id])
+  titular          Titular?    @relation(fields: [titularId], references: [id])
+  imagenes         Imagen[]    @relation("GuiaImagenes")
+  remitos          Remito[]
+
+  @@index([estado])
+  @@index([delegacionId])
+  @@index([titularId])
+  @@index([fechaEmision])
+  @@map("guias")
+}
+
+model Remito {
+  id            Int          @id @default(autoincrement())
+  nrremito      Int          @unique
+  estado        RemitoEstado @default(disponible)
+  guiaId        Int?         @map("guia_id")
+  delegacionId  Int?         @map("delegacion_id")
+  fechaCarga    DateTime     @default(now()) @map("fecha_carga") @db.Date
+  devuelto      Boolean      @default(false)
+  observaciones String?
+  createdBy     String?      @map("created_by")
+  updatedBy     String?      @map("updated_by")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+  fechaVinculacion DateTime?    @map("fecha_vinculacion")
+  imagenes      Imagen[]     @relation("RemitoImagenes")
+  delegacion    Delegacion?  @relation(fields: [delegacionId], references: [id])
+  guia          Guia?        @relation(fields: [guiaId], references: [id])
+
+  @@index([guiaId])
+  @@index([estado])
+  @@map("remitos")
+}
+
+model Imagen {
+  id          Int      @id @default(autoincrement())
+  guiaId      Int?     @map("guia_id")
+  remitoId    Int?     @map("remito_id")
+  filename    String   @db.VarChar(255)
+  storagePath String   @map("storage_path") @db.VarChar(500)
+  contentType String   @default("image/jpeg") @map("content_type") @db.VarChar(100)
+  sizeBytes   Int?     @map("size_bytes")
+  latitude    Float?
+  longitude   Float?
+  gpsAccuracy Float?   @map("gps_accuracy")
+  gpsCapturedAt DateTime? @map("gps_captured_at")
+  createdBy   String?  @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
+  guia        Guia?    @relation("GuiaImagenes", fields: [guiaId], references: [id], onDelete: Cascade)
+  remito      Remito?  @relation("RemitoImagenes", fields: [remitoId], references: [id], onDelete: Cascade)
+
+  @@map("imagenes")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  userId     String?  @map("user_id")
+  userEmail  String?  @map("user_email") @db.VarChar(255)
+  action     String   @db.VarChar(50)
+  entityType String?  @map("entity_type") @db.VarChar(50)
+  entityId   Int?     @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+enum GuiaEstado {
+  en_blanco
+  asignada
+  emitida
+  vigente
+  vencida
+  finalizada
+  intervenida
+  anulada
+}
+
+enum RemitoEstado {
+  disponible
+  vinculado
+  en_transito
+  entregado
+  devuelto
+  anulado
+}
+
+enum GuiaTipo {
+  normal
+  deposito
+}
+
+enum UserRole {
+  admin
+  central
+  delegacion
+  control
+  auditor
+  recaudacion
+  fiscalizador
+  carga
+}

@@ -39,3 +39,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# local auth/session artifacts
+.auth/
+
+# runtime uploads and audit archive exports
+/public/uploads/
+/audit-archive/
+
+# Production deployment and backups
+/deployment/.env.stack
+/backups/
+/scripts/legacy/
+*.dump
+*.sql
+*.log

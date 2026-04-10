@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "research_p7.ts", "research_p7.js", "debug_delete.js", "test_delete_todas.js", "check_todas.sql"]
 }
