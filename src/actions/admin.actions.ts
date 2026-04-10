@@ -14,7 +14,6 @@ const updateUserSchema = z.object({
   // Fix #7: All 7 roles from the schema
   role: z.enum(["admin", "central", "delegacion", "control", "auditor", "recaudacion", "fiscalizador"]).optional(),
   delegacionId: z.number().int().optional().nullable(),
-  banned: z.boolean().optional(),
 });
 
 export async function getUsers() {
@@ -43,7 +42,6 @@ export async function updateUser(data: unknown) {
         email: true,
         role: true,
         delegacionId: true,
-        banned: true,
       },
     });
 
@@ -60,7 +58,6 @@ export async function updateUser(data: unknown) {
         email: true,
         role: true,
         delegacionId: true,
-        banned: true,
       },
     });
 

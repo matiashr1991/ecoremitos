@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
-  Shield, Plus, Pencil, Trash2, UserCheck, UserX,
+  Shield, Plus, Pencil, Trash2,
 } from "lucide-react";
 import {
   ModalWrapper, EmptyState, FormField,
@@ -15,7 +15,6 @@ type User = {
   name: string;
   email: string;
   role: string | null;
-  banned: boolean | null;
   createdAt: string;
   delegacion: { id: number; nombre: string } | null;
 };
@@ -77,7 +76,6 @@ export function AdminClient({ users, delegaciones }: { users: User[]; delegacion
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Usuario</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Rol</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Delegación</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Estado</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Creado</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Acciones</th>
                 </tr>
@@ -105,17 +103,6 @@ export function AdminClient({ users, delegaciones }: { users: User[]; delegacion
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
                         {user.delegacion?.nombre || "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {user.banned ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
-                            <UserX className="h-3.5 w-3.5" /> Bloqueado
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
-                            <UserCheck className="h-3.5 w-3.5" /> Activo
-                          </span>
-                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
                         {new Date(user.createdAt).toLocaleDateString("es-AR")}
@@ -235,7 +222,6 @@ function EditUserModal({ user, onClose, delegaciones }: { user: User; onClose: (
         name: fd.get("name") as string,
         role: fd.get("role") as string,
         delegacionId: fd.get("delegacionId") ? parseInt(fd.get("delegacionId") as string) : null,
-        banned: fd.get("banned") === "true",
       });
       if (res.error) setErrors(res.error as Record<string, string[]>);
       else onClose();
@@ -269,12 +255,6 @@ function EditUserModal({ user, onClose, delegaciones }: { user: User; onClose: (
             </select>
           </FormField>
         </div>
-        <FormField label="Estado" id="banned">
-          <select name="banned" id="banned" defaultValue={user.banned ? "true" : "false"} className={inputStyles}>
-            <option value="false">Activo</option>
-            <option value="true">Bloqueado</option>
-          </select>
-        </FormField>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           Email: {user.email} (no se puede cambiar)
         </p>
