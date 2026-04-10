@@ -21,12 +21,11 @@ services:
 
     networks:
       - web
-      - trazabilidad_internal
+      - ecoremitos_internal
 
-    # Ajustá o eliminá este volumen si tu app no guarda uploads/archivos
     volumes:
-      - /opt/stacks/trazabilidad/data/uploads:/app/public/uploads
-      - /opt/stacks/trazabilidad/data/audit-archive:/app/audit-archive
+      - /opt/stacks/ecoremitos/data/uploads:/app/public/uploads
+      - /opt/stacks/ecoremitos/data/audit-archive:/app/audit-archive
 
     deploy:
       replicas: 1
@@ -54,13 +53,13 @@ services:
         - traefik.enable=true
         - traefik.docker.network=web
 
-        - traefik.http.routers.trazabilidad.rule=Host(`${DOMAIN}`)
-        - traefik.http.routers.trazabilidad.entrypoints=websecure
-        - traefik.http.routers.trazabilidad.tls=true
-        - traefik.http.routers.trazabilidad.tls.certresolver=${CERTRESOLVER}
+        - traefik.http.routers.ecoremitos.rule=Host(`${DOMAIN}`)
+        - traefik.http.routers.ecoremitos.entrypoints=websecure
+        - traefik.http.routers.ecoremitos.tls=true
+        - traefik.http.routers.ecoremitos.tls.certresolver=${CERTRESOLVER}
 
-        - traefik.http.routers.trazabilidad.service=trazabilidad-svc
-        - traefik.http.services.trazabilidad-svc.loadbalancer.server.port=${APP_INTERNAL_PORT}
+        - traefik.http.routers.ecoremitos.service=ecoremitos-svc
+        - traefik.http.services.ecoremitos-svc.loadbalancer.server.port=${APP_INTERNAL_PORT}
 
   db:
     image: postgres:15-alpine
@@ -72,10 +71,10 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
 
     networks:
-      - trazabilidad_internal
+      - ecoremitos_internal
 
     volumes:
-      - /opt/stacks/trazabilidad/data/postgres:/var/lib/postgresql/data
+      - /opt/stacks/ecoremitos/data/postgres:/var/lib/postgresql/data
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -101,6 +100,6 @@ networks:
     external: true
     name: web
 
-  trazabilidad_internal:
+  ecoremitos_internal:
     driver: overlay
     attachable: true
