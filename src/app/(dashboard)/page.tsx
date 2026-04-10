@@ -80,9 +80,6 @@ function translateAction(action: string) {
     CREATE_USER: "Creó usuario",
     UPDATE_USER: "Actualizó usuario",
     DELETE_USER: "Eliminó usuario",
-    CREATE_REMITO: "Creó remito",
-    UPDATE_REMITO: "Actualizó remito",
-    DELETE_REMITO: "Eliminó remito",
   };
   return actions[action] || action.replace(/_/g, " ").toLowerCase();
 }
