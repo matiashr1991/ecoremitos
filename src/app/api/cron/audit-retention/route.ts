@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { toCsvValue } from "@/lib/audit";
+import { toCsvValue } from "@/lib/csv";
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");

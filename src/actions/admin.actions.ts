@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth-guard";
-import { getAuditRequestMeta, toCsvValue } from "@/lib/audit";
+import { getAuditRequestMeta } from "@/lib/audit";
+import { toCsvValue } from "@/lib/csv";
 
 const updateUserSchema = z.object({
   id: z.string(),
