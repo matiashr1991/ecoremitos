@@ -20,7 +20,7 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
 
     networks:
-      - web
+      - matdevnet
       - ecoremitos_internal
 
     volumes:
@@ -51,7 +51,7 @@ services:
 
       labels:
         - traefik.enable=true
-        - traefik.docker.network=web
+        - traefik.docker.network=matdevnet
 
         - traefik.http.routers.ecoremitos.rule=Host(`${DOMAIN}`)
         - traefik.http.routers.ecoremitos.entrypoints=websecure
@@ -96,9 +96,9 @@ services:
         window: 30s
 
 networks:
-  web:
+  matdevnet:
     external: true
-    name: web
+    name: matdevnet
 
   ecoremitos_internal:
     driver: overlay
