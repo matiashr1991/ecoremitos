@@ -54,5 +54,6 @@ next-env.d.ts
 /backups/
 /scripts/legacy/
 *.dump
+!prisma/migrations/**/*.sql
 *.sql
 *.log
