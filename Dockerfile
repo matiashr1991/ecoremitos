@@ -23,6 +23,8 @@ RUN npx prisma generate
 FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_APP_URL=https://trazabilidad.mmatdev.com
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 COPY --from=prisma /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
