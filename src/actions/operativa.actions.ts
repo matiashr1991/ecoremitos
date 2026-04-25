@@ -407,7 +407,7 @@ export async function completarOperativaTablet(data: FormData) {
             data: {
               guiaId: guia.id,
               filename: uniqueFilename,
-              storagePath: `/uploads/guias/${uniqueFilename}`,
+              storagePath: `/api/uploads/guias/${uniqueFilename}`,
               contentType: foto.type,
               sizeBytes: foto.size,
               createdBy: session.user.id,

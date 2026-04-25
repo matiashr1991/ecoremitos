@@ -1,3 +1,6 @@
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import {
@@ -85,6 +88,13 @@ function translateAction(action: string) {
 }
 
 export default async function DashboardPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const role = (session?.user as any)?.role;
+
+  if (role === "carga") {
+    redirect("/carga");
+  }
+
   const stats = await getStats();
 
   const cards = [

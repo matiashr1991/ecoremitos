@@ -29,9 +29,9 @@ type NavItem = {
 };
 
 const navigation: NavItem[] = [
-  { name: "Panel Operativo", href: "/", icon: LayoutDashboard },
-  { name: "Guías", href: "/guias", icon: FileText, roles: ["admin", "recaudacion", "central", "control", "auditor", "carga"] },
-  { name: "Remitos", href: "/remitos", icon: Truck, roles: ["admin", "recaudacion", "central", "control", "auditor", "carga"] },
+  { name: "Panel Operativo", href: "/", icon: LayoutDashboard, roles: ["admin", "recaudacion", "central", "control", "auditor"] },
+  { name: "Guías", href: "/guias", icon: FileText, roles: ["admin", "recaudacion", "central", "control", "auditor"] },
+  { name: "Remitos", href: "/remitos", icon: Truck, roles: ["admin", "recaudacion", "central", "control", "auditor"] },
   { name: "Habilitaciones", href: "/entregas", icon: PackageOpen, roles: ["admin", "recaudacion"] },
   { name: "Ingreso de Datos", href: "/carga", icon: ClipboardCheck, roles: ["admin", "carga", "control"] },
   { name: "Delegaciones", href: "/delegaciones", icon: Building2, roles: ["admin", "recaudacion", "central"] },

@@ -660,11 +660,15 @@ function ViewPhotosModal({ guia, onClose }: { guia: Guia; onClose: () => void })
       <div className="space-y-6">
         {guia.imagenes && guia.imagenes.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 max-h-[70vh] overflow-y-auto pr-1">
-            {guia.imagenes.map((img) => (
+            {guia.imagenes.map((img) => {
+              const imgSrc = img.storagePath.startsWith("/api/uploads/")
+                ? img.storagePath
+                : img.storagePath.replace(/^\/uploads\//, "/api/uploads/");
+              return (
               <div key={img.id} className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="aspect-[4/3] relative flex items-center justify-center bg-zinc-200 dark:bg-zinc-950">
                   <img 
-                    src={img.storagePath} 
+                    src={imgSrc} 
                     alt={img.filename} 
                     className="h-full w-full object-contain"
                   />
@@ -705,7 +709,7 @@ function ViewPhotosModal({ guia, onClose }: { guia: Guia; onClose: () => void })
                   )}
                   <div className="mt-3 flex items-center gap-2">
                     <a
-                      href={img.storagePath}
+                      href={imgSrc}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
@@ -713,7 +717,7 @@ function ViewPhotosModal({ guia, onClose }: { guia: Guia; onClose: () => void })
                       <ExternalLink className="h-3 w-3" /> Ver grande
                     </a>
                     <a
-                      href={img.storagePath}
+                      href={imgSrc}
                       download={img.filename}
                       className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
                     >
@@ -722,7 +726,8 @@ function ViewPhotosModal({ guia, onClose }: { guia: Guia; onClose: () => void })
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
