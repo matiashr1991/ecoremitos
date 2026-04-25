@@ -1,37 +1,57 @@
+# ============================================
+# Stage 1: Dependencies (cached aggressively)
+# ============================================
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
 
-FROM node:20-alpine AS builder
+# ============================================
+# Stage 2: Prisma generate (cached separately)
+# ============================================
+FROM node:20-alpine AS prisma
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN npx prisma generate
+
+# ============================================
+# Stage 3: Build Next.js
+# ============================================
+FROM node:20-alpine AS builder
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=prisma /app/node_modules ./node_modules
+COPY . .
 RUN npm run build
 
+# ============================================
+# Stage 4: Production runner (minimal)
+# ============================================
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
-# Essential files for runtime and potential maintenance
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+# Only copy what standalone needs
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Setup persistence directories with correct permissions
-RUN mkdir -p /app/public/uploads /app/audit-archive && chown -R nextjs:nodejs /app
+# Prisma client for runtime queries + schema for migrations
+COPY --from=prisma /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=prisma /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
+
+# Setup persistence directories
+RUN mkdir -p /app/public/uploads && chown -R nextjs:nodejs /app
 
 USER nextjs
 EXPOSE 3000
-
-# Start only the application. Migrations should be run as a separate step or maintenance task.
 CMD ["node", "server.js"]

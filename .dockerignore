@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build output
+.next
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Project files not needed in build
+backups
+deployment
+scripts
+README.md
+.env
+.env.*
+
+# Upload data (mounted as volume)
+public/uploads
