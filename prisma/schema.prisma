@@ -234,3 +234,10 @@ enum UserRole {
   fiscalizador
   carga
 }
+
+model Configuracion {
+  clave String @id
+  valor String
+
+  @@map("configuracion")
+}

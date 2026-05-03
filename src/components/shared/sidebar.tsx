@@ -16,6 +16,7 @@ import {
   TabletSmartphone,
   PackageOpen,
   ClipboardCheck,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -38,6 +39,7 @@ const navigation: NavItem[] = [
   { name: "Productores / Titulares", href: "/titulares", icon: Users, roles: ["admin", "recaudacion", "central"] },
   { name: "Gestión de Agentes", href: "/usuarios", icon: Shield, roles: ["admin"] },
   { name: "Registro de Actividades", href: "/admin/audit-log", icon: ClipboardList, roles: ["admin", "auditor"] },
+  { name: "Configuración", href: "/admin/configuracion", icon: Settings, roles: ["admin"] },
 ];
 
 export function Sidebar() {

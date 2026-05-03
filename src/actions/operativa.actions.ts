@@ -86,6 +86,17 @@ export async function buscarTitularPorDocumentoOperativa(query: string) {
     return { error: "No se encontró titular para ese CUIT/DNI" };
   }
 
+  // Obtener la configuración del bloqueo
+  const configs = await prisma.configuracion.findMany({
+    where: {
+      clave: { in: ["BLOQUEO_ACTIVO", "FECHA_CORTE_BLOQUEO"] }
+    }
+  });
+  
+  const bloqueoActivo = configs.find(c => c.clave === "BLOQUEO_ACTIVO")?.valor === "true";
+  const fechaCorteStr = configs.find(c => c.clave === "FECHA_CORTE_BLOQUEO")?.valor;
+  const fechaCorte = fechaCorteStr ? new Date(`${fechaCorteStr}T00:00:00`) : null;
+
   // Verificar si el titular está bloqueado por falta de rendición (5 días hábiles de tolerancia)
   const titularesBloqueados = titulares.map(titular => {
     let bloqueado = false;
@@ -98,8 +109,26 @@ export async function buscarTitularPorDocumentoOperativa(query: string) {
       titular.guias.forEach(guia => {
         if (guia.fechaVencimiento) {
           const diasVencida = differenceInBusinessDays(hoy, guia.fechaVencimiento);
+          
           if (diasVencida > 5) {
-            bloqueado = true;
+            // Verificar si aplica el bloqueo (bloqueo_activo = true y, si hay fecha de corte, guía.fechaEmision >= fecha_corte)
+            let aplicaBloqueo = bloqueoActivo;
+            if (aplicaBloqueo && fechaCorte && guia.fechaEmision) {
+               // Normalizamos ambas fechas para compararlas a las 00:00
+               const guiaDate = new Date(guia.fechaEmision);
+               guiaDate.setHours(0,0,0,0);
+               const corteDate = new Date(fechaCorte);
+               corteDate.setHours(0,0,0,0);
+               if (guiaDate < corteDate) {
+                 aplicaBloqueo = false; // Guía vieja, no bloquea
+               }
+            }
+            
+            if (aplicaBloqueo) {
+              bloqueado = true;
+            }
+            
+            // Siempre mostramos las guías adeudadas, aunque no bloqueen
             guiasAdeudadas.push({
               nrguia: guia.nrguia,
               fechaEmision: guia.fechaEmision 
