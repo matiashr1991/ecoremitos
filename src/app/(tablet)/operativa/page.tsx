@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
-import { TabletWizard } from "@/components/tablet/tablet-wizard";
+import { OperativaDashboard } from "@/components/tablet/operativa-dashboard";
 
 export default async function OperativaTabletPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -32,9 +32,7 @@ export default async function OperativaTabletPage() {
 
   return (
     <div className="w-full">
-      <TabletWizard 
-        remitos={remitosDisponibles} 
-      />
+      <OperativaDashboard remitos={remitosDisponibles} />
     </div>
   );
 }

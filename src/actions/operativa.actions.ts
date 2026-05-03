@@ -64,6 +64,18 @@ export async function buscarTitularPorDocumentoOperativa(query: string) {
       id: true,
       razonSocial: true,
       cuit: true,
+      guias: {
+        where: {
+          devuelto: false,
+          estado: { in: ["vencida", "intervenida", "vigente", "asignada"] },
+          deletedAt: null,
+        },
+        select: {
+          nrguia: true,
+          fechaVencimiento: true,
+          estado: true,
+        }
+      }
     },
     take: 20,
     orderBy: { razonSocial: "asc" },
@@ -73,7 +85,36 @@ export async function buscarTitularPorDocumentoOperativa(query: string) {
     return { error: "No se encontró titular para ese CUIT/DNI" };
   }
 
-  return { success: true, titulares };
+  // Verificar si el titular está bloqueado por falta de rendición (5 días hábiles de tolerancia)
+  const titularesBloqueados = titulares.map(titular => {
+    let bloqueado = false;
+    const guiasAdeudadas: number[] = [];
+    
+    if (titular.guias && titular.guias.length > 0) {
+      const { differenceInBusinessDays } = require("date-fns");
+      const hoy = new Date();
+      
+      titular.guias.forEach(guia => {
+        if (guia.fechaVencimiento) {
+          const diasVencida = differenceInBusinessDays(hoy, guia.fechaVencimiento);
+          if (diasVencida > 5) {
+            bloqueado = true;
+            guiasAdeudadas.push(guia.nrguia);
+          }
+        }
+      });
+    }
+    
+    return {
+      id: titular.id,
+      razonSocial: titular.razonSocial,
+      cuit: titular.cuit,
+      bloqueado,
+      guiasAdeudadas
+    };
+  });
+
+  return { success: true, titulares: titularesBloqueados };
 }
 
 export async function buscarGuiaPorNumeroOperativa(nrguia: number) {
@@ -460,5 +501,75 @@ export async function completarOperativaTablet(data: FormData) {
   } catch (e: unknown) {
     console.error(e);
     return { error: "Error en la transacción operativa" };
+  }
+}
+
+export async function rendirGuiaOperativa(nrguia: number) {
+  const session = await requireRole("delegacion", "admin");
+  const auditMeta = await getAuditRequestMeta();
+
+  if (!Number.isInteger(nrguia) || nrguia <= 0) {
+    return { error: "Número de guía inválido" };
+  }
+
+  try {
+    const guia = await prisma.guia.findFirst({
+      where: {
+        nrguia,
+        delegacionId: session.user.delegacionId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        nrguia: true,
+        devuelto: true,
+        estado: true,
+      },
+    });
+
+    if (!guia) {
+      return { error: "La guía no existe en tu delegación" };
+    }
+
+    if (guia.devuelto) {
+      return { error: "Esta guía ya se encuentra rendida." };
+    }
+
+    if (guia.estado === "en_blanco") {
+      return { error: "No se pueden rendir guías en blanco." };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.guia.update({
+        where: { id: guia.id },
+        data: {
+          devuelto: true,
+          updatedBy: session.user.id,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: session.user.id,
+          userEmail: session.user.email,
+          ipAddress: auditMeta.ipAddress,
+          userAgent: auditMeta.userAgent,
+          action: "RENDICION_GUIA_FISICA",
+          entityType: "Guia",
+          entityId: guia.id,
+          newValues: {
+            devuelto: true,
+            via: "operativa",
+          },
+        },
+      });
+    });
+
+    revalidatePath("/guias");
+    revalidatePath("/operativa");
+    return { success: true, mensaje: `La guía ${nrguia} ha sido rendida exitosamente.` };
+  } catch (error) {
+    console.error(error);
+    return { error: "Error al rendir la guía física." };
   }
 }

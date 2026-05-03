@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CameraCapture } from "./camera-capture";
-import { Check, Camera, FileText, User as UserIcon, CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Check, Camera, FileText, User as UserIcon, CheckCircle2, ChevronRight, ChevronLeft, AlertTriangle } from "lucide-react";
 import {
   buscarGuiaPorNumeroOperativa,
   buscarTitularPorDocumentoOperativa,
@@ -11,11 +11,18 @@ import {
 } from "@/actions/operativa.actions";
 import { useRouter } from "next/navigation";
 
-interface Titular { id: number; razonSocial: string; cuit: string | null; }
+interface Titular { 
+  id: number; 
+  razonSocial: string; 
+  cuit: string | null; 
+  bloqueado?: boolean;
+  guiasAdeudadas?: number[];
+}
 interface Remito { id: number; nrremito: number; }
 
 interface TabletWizardProps {
   remitos: Remito[];
+  onBack?: () => void;
 }
 
 function addDays(dateStr: string, days: number): string {
@@ -25,7 +32,7 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function TabletWizard({ remitos }: TabletWizardProps) {
+export function TabletWizard({ remitos, onBack }: TabletWizardProps) {
   const router = useRouter();
   const [isSearchingGuia, startSearchGuia] = useTransition();
   const [isProrrogando, startProrroga] = useTransition();
@@ -68,8 +75,11 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
   const [imagenes, setImagenes] = useState<File[]>([]);
 
   // Derived
-  const canGoNext1 = guiaValidada !== null && selectedGuia !== "";
-  const canGoNext2 = selectedTitular !== "" && fechaEmision !== "" && (esDeposito || fechaVencimiento !== "");
+  const titularSeleccionado = selectedTitular === "" ? null : titularMatches.find((t) => t.id === selectedTitular) || null;
+  const titularBloqueado = titularSeleccionado?.bloqueado === true;
+  
+  const canGoNext1 = selectedTitular !== "" && !titularBloqueado && fechaEmision !== "" && (esDeposito || fechaVencimiento !== "");
+  const canGoNext2 = guiaValidada !== null && selectedGuia !== "";
   const canSubmit = imagenes.length > 0 && (esDeposito ? true : selectedRemitos.length > 0);
 
   const agregarRemitoManual = () => {
@@ -104,6 +114,37 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
     .map((id) => remitos.find((r) => r.id === id))
     .filter((r): r is Remito => !!r)
     .sort((a, b) => a.nrremito - b.nrremito);
+
+  const handleBuscarTitular = () => {
+    setErrorTitular(null);
+    const term = titularQuery.trim();
+
+    if (!term) {
+      setTitularMatches([]);
+      setSelectedTitular("");
+      setErrorTitular("Ingresá CUIT o DNI");
+      return;
+    }
+
+    startSearchTitular(async () => {
+      const res = await buscarTitularPorDocumentoOperativa(term);
+      if (res.error || !res.success) {
+        setTitularMatches([]);
+        setSelectedTitular("");
+        setErrorTitular(res.error || "No se pudo buscar el titular");
+        return;
+      }
+
+      setTitularMatches(res.titulares);
+      setErrorTitular(null);
+
+      if (res.titulares.length === 1) {
+        setSelectedTitular(res.titulares[0].id);
+      } else {
+        setSelectedTitular("");
+      }
+    });
+  };
 
   const handleBuscarGuia = () => {
     setErrorGuia(null);
@@ -173,40 +214,6 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
       );
     });
   };
-
-  const handleBuscarTitular = () => {
-    setErrorTitular(null);
-    const term = titularQuery.trim();
-
-    if (!term) {
-      setTitularMatches([]);
-      setSelectedTitular("");
-      setErrorTitular("Ingresá CUIT o DNI");
-      return;
-    }
-
-    startSearchTitular(async () => {
-      const res = await buscarTitularPorDocumentoOperativa(term);
-      if (res.error || !res.success) {
-        setTitularMatches([]);
-        setSelectedTitular("");
-        setErrorTitular(res.error || "No se pudo buscar el titular");
-        return;
-      }
-
-      setTitularMatches(res.titulares);
-      setErrorTitular(null);
-
-      if (res.titulares.length === 1) {
-        setSelectedTitular(res.titulares[0].id);
-      } else {
-        setSelectedTitular("");
-      }
-    });
-  };
-
-  const titularSeleccionado =
-    selectedTitular === "" ? null : titularMatches.find((t) => t.id === selectedTitular) || null;
 
   const handleCompletar = async () => {
     setIsSubmitting(true);
@@ -279,31 +286,41 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Operación Exitosa</h2>
           <p className="text-zinc-600 dark:text-zinc-400 mt-2">La guía y los remitos han sido actualizados y vinculados correctamente en el sistema central.</p>
         </div>
-        <button 
-          onClick={() => {
-            setSuccess(false);
-            setStep(1);
-            setSelectedGuia("");
-            setGuiaNumero("");
-            setGuiaValidada(null);
-            setErrorGuia(null);
-            setProrrogaInfo(null);
-            setSelectedTitular("");
-            setTitularQuery("");
-            setTitularMatches([]);
-            setErrorTitular(null);
-            setSelectedRemitos([]);
-            setRemitoManual("");
-            setErrorRemito(null);
-            setImagenes([]);
-            setFechaEmision(today);
-            setFechaVencimiento(addDays(today, 120));
-            router.refresh(); // reload available items
-          }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl text-lg font-medium shadow-md transition-all active:scale-95"
-        >
-          Nueva Operación
-        </button>
+        <div className="flex gap-4">
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white px-8 py-4 rounded-xl text-lg font-medium shadow-sm transition-all"
+            >
+              Volver al Menú
+            </button>
+          )}
+          <button 
+            onClick={() => {
+              setSuccess(false);
+              setStep(1);
+              setSelectedGuia("");
+              setGuiaNumero("");
+              setGuiaValidada(null);
+              setErrorGuia(null);
+              setProrrogaInfo(null);
+              setSelectedTitular("");
+              setTitularQuery("");
+              setTitularMatches([]);
+              setErrorTitular(null);
+              setSelectedRemitos([]);
+              setRemitoManual("");
+              setErrorRemito(null);
+              setImagenes([]);
+              setFechaEmision(today);
+              setFechaVencimiento(addDays(today, 120));
+              router.refresh(); // reload available items
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl text-lg font-medium shadow-md transition-all active:scale-95"
+          >
+            Nueva Operación
+          </button>
+        </div>
       </div>
     );
   }
@@ -316,15 +333,24 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
 
   return (
     <div className="flex flex-col h-full space-y-6">
+      {onBack && step === 1 && (
+        <button onClick={onBack} className="flex items-center text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-white w-max transition-colors">
+          <ChevronLeft className="w-4 h-4 mr-1" /> Volver al panel
+        </button>
+      )}
+
       {/* Stepper Header */}
       <div className="flex items-center justify-between px-2 mb-4 relative">
         <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-zinc-200 dark:bg-zinc-800 -z-10 -translate-y-1/2"></div>
         {[
-          {n: 1, label: "Guía", icon: FileText},
-          {n: 2, label: "Datos", icon: UserIcon},
+          {n: 1, label: "Datos Titular", icon: UserIcon},
+          {n: 2, label: "Elegir Guía", icon: FileText},
           {n: 3, label: "Comprobantes", icon: Camera}
         ].map((s) => (
-          <div key={s.n} className="flex flex-col items-center gap-2 bg-zinc-50 dark:bg-zinc-950 px-2 cursor-pointer" onClick={() => s.n < step && setStep(s.n)}>
+          <div key={s.n} className="flex flex-col items-center gap-2 bg-zinc-50 dark:bg-zinc-950 px-2 cursor-pointer" onClick={() => {
+             // Only allow clicking back to completed steps
+             if (s.n < step) setStep(s.n);
+          }}>
             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${stepClasses(s.n)}`}>
               {step > s.n ? <Check className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
             </div>
@@ -333,90 +359,11 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
         ))}
       </div>
 
-      {/* STEP 1: GUIA */}
+      {/* STEP 1: TITULAR y TIPO (Anteriormente Step 2) */}
       {step === 1 && (
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-6 animate-in slide-in-from-left-4">
-          <div>
-            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">1. Seleccionar Guía</h3>
-            <p className="text-zinc-500 text-sm">Ingresá número de guía. Si está en blanco, seguís operativa. Si está vencida/usada, podés prorrogar una vez.</p>
-          </div>
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                placeholder="Ej: 700123"
-                value={guiaNumero}
-                onChange={(e) => {
-                  setGuiaNumero(e.target.value);
-                  setGuiaValidada(null);
-                  setSelectedGuia("");
-                  setProrrogaInfo(null);
-                  setOkGuia(null);
-                  if (errorGuia) setErrorGuia(null);
-                }}
-                className="w-full text-lg p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <button
-                type="button"
-                onClick={handleBuscarGuia}
-                disabled={isSearchingGuia}
-                className="px-4 py-3 rounded-xl bg-emerald-600 text-white font-semibold disabled:opacity-50"
-              >
-                {isSearchingGuia ? "Validando..." : "Validar"}
-              </button>
-            </div>
-
-            {guiaValidada !== null && !errorGuia && (
-              <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-                Guía Nº {guiaValidada} validada correctamente.
-              </p>
-            )}
-
-            {okGuia && !errorGuia && (
-              <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{okGuia}</p>
-            )}
-
-            {errorGuia && (
-              <p className="text-sm text-red-500">{errorGuia}</p>
-            )}
-
-            {prorrogaInfo && (
-              <div className="rounded-xl border border-amber-300/60 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
-                <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">{prorrogaInfo.mensaje}</p>
-                <p className="text-xs text-amber-700/90 dark:text-amber-300/90">
-                  Guía Nº {prorrogaInfo.nrguia} - Vencimiento actual: {prorrogaInfo.fechaVencimiento || "N/D"}
-                </p>
-                <button
-                  type="button"
-                  onClick={handleProrrogarGuia}
-                  disabled={isProrrogando}
-                  className="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold disabled:opacity-50"
-                >
-                  {isProrrogando ? "Prorrogando..." : "Aplicar prórroga +30 días"}
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex justify-end pt-4">
-            <button
-              disabled={!canGoNext1}
-              onClick={() => setStep(2)}
-              className="px-6 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold rounded-xl text-lg disabled:opacity-50 flex items-center gap-2 active:scale-95 transition-all"
-            >
-              Siguiente <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 2: TITULAR y TIPO */}
-      {step === 2 && (
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-6 animate-in slide-in-from-right-4">
            <div>
-            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">2. Datos de Operación</h3>
+            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">1. Datos de Operación</h3>
             <p className="text-zinc-500 text-sm">Designa el titular, tipo de viaje y las fechas correspondientes.</p>
           </div>
 
@@ -473,7 +420,7 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
                   type="button"
                   onClick={handleBuscarTitular}
                   disabled={isSearchingTitular}
-                  className="px-4 py-3 rounded-xl bg-emerald-600 text-white font-semibold disabled:opacity-50"
+                  className="px-4 py-3 rounded-xl bg-emerald-600 text-white font-semibold disabled:opacity-50 min-w-[100px]"
                 >
                   {isSearchingTitular ? "Buscando..." : "Buscar"}
                 </button>
@@ -481,10 +428,27 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
 
               {errorTitular && <p className="text-sm text-red-500">{errorTitular}</p>}
 
-              {titularSeleccionado && (
-                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+              {titularSeleccionado && !titularBloqueado && (
+                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                   Titular seleccionado: {titularSeleccionado.razonSocial} {titularSeleccionado.cuit ? `(CUIT/DNI: ${titularSeleccionado.cuit})` : ""}
                 </p>
+              )}
+
+              {titularSeleccionado && titularBloqueado && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-xl">
+                  <div className="flex gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-red-800 dark:text-red-300">Operación Bloqueada</h4>
+                      <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                        El titular <strong>{titularSeleccionado.razonSocial}</strong> se encuentra bloqueado por falta de rendición física de guías vencidas por más de 5 días hábiles.
+                      </p>
+                      <p className="text-sm font-medium text-red-800 dark:text-red-300 mt-2">
+                        Guías pendientes: {titularSeleccionado.guiasAdeudadas?.join(", ")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {!titularSeleccionado && titularMatches.length > 1 && (
@@ -494,10 +458,17 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
                       type="button"
                       key={t.id}
                       onClick={() => setSelectedTitular(t.id)}
-                      className="w-full text-left rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-100 hover:border-emerald-400"
+                      className={`w-full text-left rounded-lg border px-3 py-2 text-sm transition-colors ${
+                        t.bloqueado 
+                          ? "bg-red-50 border-red-200 text-red-900 dark:bg-red-900/20 dark:border-red-900/50 dark:text-red-300" 
+                          : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 hover:border-emerald-400"
+                      }`}
                     >
-                      <div className="font-medium">{t.razonSocial}</div>
-                      <div className="text-xs text-zinc-500">CUIT/DNI: {t.cuit || "sin dato"}</div>
+                      <div className="font-medium flex justify-between">
+                        <span>{t.razonSocial}</span>
+                        {t.bloqueado && <span className="text-xs font-bold uppercase text-red-600 dark:text-red-400">Bloqueado</span>}
+                      </div>
+                      <div className="text-xs opacity-70">CUIT/DNI: {t.cuit || "sin dato"}</div>
                     </button>
                   ))}
                 </div>
@@ -537,6 +508,85 @@ export function TabletWizard({ remitos }: TabletWizardProps) {
             </div>
           </div>
 
+          <div className="flex justify-end pt-4">
+            <button
+              disabled={!canGoNext1}
+              onClick={() => setStep(2)}
+              className="px-6 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold rounded-xl text-lg disabled:opacity-50 flex items-center gap-2 active:scale-95 transition-all"
+            >
+              Siguiente <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2: GUIA (Anteriormente Step 1) */}
+      {step === 2 && (
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-6 animate-in slide-in-from-right-4">
+          <div>
+            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">2. Seleccionar Guía</h3>
+            <p className="text-zinc-500 text-sm">Ingresá número de guía. Si está en blanco, seguís operativa. Si está vencida/usada, podés prorrogar una vez.</p>
+          </div>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                placeholder="Ej: 700123"
+                value={guiaNumero}
+                onChange={(e) => {
+                  setGuiaNumero(e.target.value);
+                  setGuiaValidada(null);
+                  setSelectedGuia("");
+                  setProrrogaInfo(null);
+                  setOkGuia(null);
+                  if (errorGuia) setErrorGuia(null);
+                }}
+                className="w-full text-lg p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={handleBuscarGuia}
+                disabled={isSearchingGuia}
+                className="px-4 py-3 rounded-xl bg-emerald-600 text-white font-semibold disabled:opacity-50 min-w-[100px]"
+              >
+                {isSearchingGuia ? "Validando..." : "Validar"}
+              </button>
+            </div>
+
+            {guiaValidada !== null && !errorGuia && (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                Guía Nº {guiaValidada} validada correctamente.
+              </p>
+            )}
+
+            {okGuia && !errorGuia && (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{okGuia}</p>
+            )}
+
+            {errorGuia && (
+              <p className="text-sm text-red-500">{errorGuia}</p>
+            )}
+
+            {prorrogaInfo && (
+              <div className="rounded-xl border border-amber-300/60 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
+                <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">{prorrogaInfo.mensaje}</p>
+                <p className="text-xs text-amber-700/90 dark:text-amber-300/90">
+                  Guía Nº {prorrogaInfo.nrguia} - Vencimiento actual: {prorrogaInfo.fechaVencimiento || "N/D"}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleProrrogarGuia}
+                  disabled={isProrrogando}
+                  className="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold disabled:opacity-50"
+                >
+                  {isProrrogando ? "Prorrogando..." : "Aplicar prórroga +30 días"}
+                </button>
+              </div>
+            )}
+          </div>
+          
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(1)}
