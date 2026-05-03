@@ -34,7 +34,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-zinc-200 bg-white/80 px-6 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
+    <header className="relative z-50 flex h-16 items-center justify-between border-b border-zinc-200 bg-white/80 px-6 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
       <div>
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
           ECOREMITOS <span className="text-zinc-400 font-normal ml-2">| Fiscalización y Trazabilidad</span>
