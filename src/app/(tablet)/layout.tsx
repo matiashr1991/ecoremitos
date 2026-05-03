@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { TabletLogoutButton } from "@/components/tablet/tablet-logout-button";
 
 export default async function TabletLayout({
   children,
@@ -39,13 +40,7 @@ export default async function TabletLayout({
             {session.user.name}
           </span>
           <ThemeToggle />
-          <Link
-            href="/api/auth/sign-out"
-            className="rounded-md p-2 text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            prefetch={false}
-          >
-            <LogOut className="h-5 w-5" />
-          </Link>
+          <TabletLogoutButton />
         </div>
       </header>
       <main className="flex-1 overflow-x-hidden overflow-y-auto w-full max-w-4xl mx-auto p-4 sm:p-6 pb-24">

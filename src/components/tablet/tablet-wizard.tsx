@@ -16,7 +16,7 @@ interface Titular {
   razonSocial: string; 
   cuit: string | null; 
   bloqueado?: boolean;
-  guiasAdeudadas?: number[];
+  guiasAdeudadas?: { nrguia: number; fechaEmision: string }[];
 }
 interface Remito { id: number; nrremito: number; }
 
@@ -368,39 +368,6 @@ export function TabletWizard({ remitos, onBack }: TabletWizardProps) {
           </div>
 
           <div className="space-y-5">
-            {/* Tipo */}
-            <div className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl">
-              <label className="flex-1 flex items-center gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="rutatipo"
-                  checked={!esDeposito}
-                  onChange={() => {
-                    setEsDeposito(false);
-                    if (!fechaVencimiento) setFechaVencimiento(addDays(fechaEmision || today, 120));
-                  }}
-                  className="w-6 h-6 text-emerald-600 focus:ring-emerald-500 border-zinc-300"
-                />
-                <span className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Guía Normal (Ruta)</span>
-              </label>
-              <label className="flex-1 flex items-center gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="rutatipo"
-                  checked={esDeposito}
-                  onChange={() => {
-                    setEsDeposito(true);
-                    setSelectedRemitos([]);
-                    setRemitoManual("");
-                    setErrorRemito(null);
-                    setFechaVencimiento("");
-                  }}
-                  className="w-6 h-6 text-emerald-600 focus:ring-emerald-500 border-zinc-300"
-                />
-                <span className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Para Depósito</span>
-              </label>
-            </div>
-
             {/* Titular */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Titular (Maderero/Propietario)</label>
@@ -444,7 +411,7 @@ export function TabletWizard({ remitos, onBack }: TabletWizardProps) {
                         El titular <strong>{titularSeleccionado.razonSocial}</strong> se encuentra bloqueado por falta de rendición física de guías vencidas por más de 5 días hábiles.
                       </p>
                       <p className="text-sm font-medium text-red-800 dark:text-red-300 mt-2">
-                        Guías pendientes: {titularSeleccionado.guiasAdeudadas?.join(", ")}
+                        Guías pendientes: {titularSeleccionado.guiasAdeudadas?.map((g: any) => `${g.nrguia} (Emitida: ${g.fechaEmision})`).join(" | ")}
                       </p>
                     </div>
                   </div>
@@ -475,37 +442,77 @@ export function TabletWizard({ remitos, onBack }: TabletWizardProps) {
               )}
             </div>
 
-            {/* Fechas */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Fecha Emisión</label>
-                <input 
-                  type="date" 
-                  value={fechaEmision}
-                  onChange={e => {
-                    const emision = e.target.value;
-                    setFechaEmision(emision);
-                    if (!esDeposito) {
-                      setFechaVencimiento(addDays(emision, 120));
-                    }
-                  }}
-                  className="w-full p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Fecha Vencimiento</label>
-                <input 
-                  type="date" 
-                  value={fechaVencimiento}
-                  onChange={e => setFechaVencimiento(e.target.value)}
-                  disabled={esDeposito}
-                  className="w-full p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                />
-                {esDeposito && (
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Para depósito no se carga fecha de vencimiento.</p>
-                )}
-              </div>
-            </div>
+            {/* Resto del formulario (Solo visible si está autorizado) */}
+            {titularSeleccionado && !titularBloqueado && (
+              <>
+                <hr className="border-zinc-200 dark:border-zinc-800 my-4" />
+                
+                {/* Tipo */}
+                <div className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl">
+                  <label className="flex-1 flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="rutatipo"
+                      checked={!esDeposito}
+                      onChange={() => {
+                        setEsDeposito(false);
+                        if (!fechaVencimiento) setFechaVencimiento(addDays(fechaEmision || today, 120));
+                      }}
+                      className="w-6 h-6 text-emerald-600 focus:ring-emerald-500 border-zinc-300"
+                    />
+                    <span className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Guía Normal (Ruta)</span>
+                  </label>
+                  <label className="flex-1 flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="rutatipo"
+                      checked={esDeposito}
+                      onChange={() => {
+                        setEsDeposito(true);
+                        setSelectedRemitos([]);
+                        setRemitoManual("");
+                        setErrorRemito(null);
+                        setFechaVencimiento("");
+                      }}
+                      className="w-6 h-6 text-emerald-600 focus:ring-emerald-500 border-zinc-300"
+                    />
+                    <span className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Para Depósito</span>
+                  </label>
+                </div>
+
+                {/* Fechas */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Fecha Emisión</label>
+                    <input 
+                      type="date" 
+                      value={fechaEmision}
+                      onChange={e => {
+                        const emision = e.target.value;
+                        setFechaEmision(emision);
+                        if (!esDeposito) {
+                          setFechaVencimiento(addDays(emision, 120));
+                        }
+                      }}
+                      className="w-full p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Fecha Vencimiento</label>
+                    <input 
+                      type="date" 
+                      value={fechaVencimiento}
+                      onChange={e => setFechaVencimiento(e.target.value)}
+                      disabled={esDeposito}
+                      className="w-full p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                    />
+                    {esDeposito && (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">Para depósito no se carga fecha de vencimiento.</p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex justify-end pt-4">

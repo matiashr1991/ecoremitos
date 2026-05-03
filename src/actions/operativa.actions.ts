@@ -72,6 +72,7 @@ export async function buscarTitularPorDocumentoOperativa(query: string) {
         },
         select: {
           nrguia: true,
+          fechaEmision: true,
           fechaVencimiento: true,
           estado: true,
         }
@@ -88,7 +89,7 @@ export async function buscarTitularPorDocumentoOperativa(query: string) {
   // Verificar si el titular está bloqueado por falta de rendición (5 días hábiles de tolerancia)
   const titularesBloqueados = titulares.map(titular => {
     let bloqueado = false;
-    const guiasAdeudadas: number[] = [];
+    const guiasAdeudadas: Array<{ nrguia: number, fechaEmision: string }> = [];
     
     if (titular.guias && titular.guias.length > 0) {
       const { differenceInBusinessDays } = require("date-fns");
@@ -99,7 +100,12 @@ export async function buscarTitularPorDocumentoOperativa(query: string) {
           const diasVencida = differenceInBusinessDays(hoy, guia.fechaVencimiento);
           if (diasVencida > 5) {
             bloqueado = true;
-            guiasAdeudadas.push(guia.nrguia);
+            guiasAdeudadas.push({
+              nrguia: guia.nrguia,
+              fechaEmision: guia.fechaEmision 
+                ? guia.fechaEmision.toISOString().slice(0, 10) 
+                : "N/A"
+            });
           }
         }
       });
