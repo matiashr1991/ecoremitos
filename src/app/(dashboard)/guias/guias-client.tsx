@@ -31,6 +31,7 @@ type Guia = {
 
 type Delegacion = { id: number; nombre: string };
 
+const guiaEstadoOpciones = [
   { value: "en_blanco", label: "En blanco" },
   { value: "asignada", label: "Asignada" },
   { value: "vigente", label: "Vigente" },

@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+async function getStats() {
   const [
     guiasTotal,
     remitosTotal,
