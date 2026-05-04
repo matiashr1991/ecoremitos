@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Plus, Search, MoreVertical, Pencil, Trash2, Package, Clock, Link2, Image as ImageIcon, MapPin, Download, ExternalLink } from "lucide-react";
+import { FileText, Plus, Search, MoreVertical, Pencil, Trash2, Package, Clock, Link2, Image as ImageIcon, MapPin, Download, ExternalLink, X, Users } from "lucide-react";
 import {
   StatusBadge, ModalWrapper, EmptyState, Pagination,
   SearchInput, SelectFilter, FormField, Badge,
@@ -10,6 +10,7 @@ import {
 } from "@/components/shared/ui-components";
 import { createGuia, createGuiasBulk, updateGuia, deleteGuia, prorrogarGuia, blanquearGuia, resetearProrrogaGuia } from "@/actions/guias.actions";
 import { previewVinculacionRemitos, vincularRemitosExactos } from "@/actions/remitos.actions";
+import { cn } from "@/lib/utils";
 
 type Guia = {
   id: number;
@@ -58,12 +59,13 @@ export function GuiasClient({
   currentPage: number;
   delegaciones: Delegacion[];
   currentRole: string;
-  currentFilters: { search: string; estado: string; delegacionId: string };
+  currentFilters: { search: string; estado: string; delegacionId: string; titularId: string };
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(currentFilters.search);
   const [estado, setEstado] = useState(currentFilters.estado);
   const [delegacionId, setDelegacionId] = useState(currentFilters.delegacionId);
+  const [titularId, setTitularId] = useState(currentFilters.titularId);
   const [showCreate, setShowCreate] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
   const [editGuia, setEditGuia] = useState<Guia | null>(null);
@@ -76,6 +78,7 @@ export function GuiasClient({
     if (search) params.set("search", search);
     if (estado) params.set("estado", estado);
     if (delegacionId) params.set("delegacionId", delegacionId);
+    if (titularId) params.set("titularId", titularId);
     router.push(`/guias?${params.toString()}`);
   };
 
@@ -85,8 +88,11 @@ export function GuiasClient({
     if (search) params.set("search", search);
     if (estado) params.set("estado", estado);
     if (delegacionId) params.set("delegacionId", delegacionId);
+    if (titularId) params.set("titularId", titularId);
     router.push(`/guias?${params.toString()}`);
   };
+
+  const hasAnyFilter = search || estado || delegacionId || titularId;
 
   return (
     <div className="space-y-6">
@@ -128,7 +134,29 @@ export function GuiasClient({
         <button onClick={applyFilters} className={btnPrimary}>
           <Search className="h-4 w-4" /> Buscar
         </button>
+
+        {hasAnyFilter && (
+          <button 
+            onClick={() => {
+              setSearch("");
+              setEstado("");
+              setDelegacionId("");
+              setTitularId("");
+              router.push("/guias");
+            }}
+            className={cn(btnSecondary, "text-zinc-500 border-zinc-200")}
+          >
+            <X className="h-4 w-4" /> Limpiar
+          </button>
+        )}
       </div>
+
+      {titularId && (
+        <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+          <Users className="h-4 w-4" />
+          <span>Filtrando por titular ID: <b>{titularId}</b></span>
+        </div>
+      )}
 
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">

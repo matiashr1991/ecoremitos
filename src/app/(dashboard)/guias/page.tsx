@@ -6,7 +6,7 @@ import { requireAuth } from "@/lib/auth-guard";
 export default async function GuiasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; search?: string; estado?: string; delegacionId?: string }>;
+  searchParams: Promise<{ page?: string; search?: string; estado?: string; delegacionId?: string; titularId?: string }>;
 }) {
   const params = await searchParams;
   const page = parseInt(params.page || "1");
@@ -15,6 +15,7 @@ export default async function GuiasPage({
     search: params.search,
     estado: params.estado,
     delegacionId: params.delegacionId ? parseInt(params.delegacionId) : undefined,
+    titularId: params.titularId ? parseInt(params.titularId) : undefined,
   });
 
   const delegaciones = await getDelegaciones();
@@ -32,6 +33,7 @@ export default async function GuiasPage({
         search: params.search || "",
         estado: params.estado || "",
         delegacionId: params.delegacionId || "",
+        titularId: params.titularId || "",
       }}
     />
   );

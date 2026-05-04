@@ -13,10 +13,11 @@ export async function getGuias(params: {
   search?: string;
   estado?: string;
   delegacionId?: number;
+  titularId?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }) {
-  const { page = 1, pageSize = 20, search, estado, sortOrder = "desc" } = params;
+  const { page = 1, pageSize = 20, search, estado, titularId, sortOrder = "desc" } = params;
   let { delegacionId, sortBy = "nrguia" } = params;
 
   // Sanitizar sortBy para evitar errores de columnas inexistentes
@@ -45,6 +46,7 @@ export async function getGuias(params: {
     }
   }
   if (delegacionId) where.delegacionId = delegacionId;
+  if (titularId) where.titularId = titularId;
   if (search) {
     const num = parseInt(search);
     if (!isNaN(num)) {

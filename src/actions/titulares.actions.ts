@@ -6,10 +6,24 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth-guard";
 import { getAuditRequestMeta } from "@/lib/audit";
 
-export async function getTitulares(params?: { search?: string; page?: number; pageSize?: number }) {
-  const { search, page = 1, pageSize = 20 } = params || {};
+export async function getTitulares(params?: { 
+  search?: string; 
+  page?: number; 
+  pageSize?: number;
+  hasGuias?: boolean;
+  sortBy?: "razonSocial" | "guias_count";
+  sortOrder?: "asc" | "desc";
+}) {
+  const { 
+    search, 
+    page = 1, 
+    pageSize = 20, 
+    hasGuias, 
+    sortBy = "razonSocial",
+    sortOrder = "asc"
+  } = params || {};
 
-  const where: Record<string, unknown> = { deletedAt: null, activo: true };
+  const where: any = { deletedAt: null, activo: true };
   if (search) {
     where.OR = [
       { razonSocial: { contains: search, mode: "insensitive" } },
@@ -17,11 +31,22 @@ export async function getTitulares(params?: { search?: string; page?: number; pa
     ];
   }
 
+  if (hasGuias) {
+    where.guias = { some: { deletedAt: null } };
+  }
+
+  const orderBy: any = {};
+  if (sortBy === "guias_count") {
+    orderBy.guias = { _count: sortOrder };
+  } else {
+    orderBy[sortBy] = sortOrder;
+  }
+
   const [titulares, total] = await Promise.all([
     prisma.titular.findMany({
       where,
       include: { _count: { select: { guias: true } } },
-      orderBy: { razonSocial: "asc" },
+      orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),

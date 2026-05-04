@@ -2,12 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Plus, Search, Pencil, Trash2, MoreVertical } from "lucide-react";
+import Link from "next/link";
+import { 
+  Users, Plus, Search, Pencil, Trash2, MoreVertical, 
+  ArrowUpDown, ArrowUp, ArrowDown, Filter 
+} from "lucide-react";
 import {
   ModalWrapper, EmptyState, Pagination, SearchInput, FormField,
-  inputStyles, btnPrimary, btnSecondary,
+  inputStyles, btnPrimary, btnSecondary, Badge
 } from "@/components/shared/ui-components";
 import { createTitular, updateTitular, deleteTitular } from "@/actions/titulares.actions";
+import { cn } from "@/lib/utils";
 
 type Titular = {
   id: number; razonSocial: string; cuit: string; email: string | null;
@@ -17,18 +22,29 @@ type Titular = {
 
 export function TitularesClient({
   titulares, total, pages, currentPage, currentSearch,
+  currentHasGuias, currentSortBy, currentSortOrder,
 }: {
   titulares: Titular[]; total: number; pages: number; currentPage: number; currentSearch: string;
+  currentHasGuias: boolean; currentSortBy: string; currentSortOrder: "asc" | "desc";
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(currentSearch);
+  const [hasGuias, setHasGuias] = useState(currentHasGuias);
   const [showCreate, setShowCreate] = useState(false);
   const [editItem, setEditItem] = useState<Titular | null>(null);
   const [actionMenu, setActionMenu] = useState<number | null>(null);
 
-  const handleSearch = () => {
+  const handleSearch = (newSortBy?: string, newSortOrder?: string) => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
+    if (hasGuias) params.set("hasGuias", "true");
+    
+    const sortBy = newSortBy || currentSortBy;
+    const sortOrder = newSortOrder || currentSortOrder;
+    
+    if (sortBy !== "razonSocial") params.set("sortBy", sortBy);
+    if (sortOrder !== "asc") params.set("sortOrder", sortOrder);
+    
     router.push(`/titulares?${params.toString()}`);
   };
 
@@ -36,7 +52,23 @@ export function TitularesClient({
     const params = new URLSearchParams();
     params.set("page", p.toString());
     if (search) params.set("search", search);
+    if (hasGuias) params.set("hasGuias", "true");
+    if (currentSortBy !== "razonSocial") params.set("sortBy", currentSortBy);
+    if (currentSortOrder !== "asc") params.set("sortOrder", currentSortOrder);
     router.push(`/titulares?${params.toString()}`);
+  };
+
+  const toggleSort = (column: string) => {
+    let newOrder: "asc" | "desc" = "asc";
+    if (currentSortBy === column) {
+      newOrder = currentSortOrder === "asc" ? "desc" : "asc";
+    }
+    handleSearch(column, newOrder);
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (currentSortBy !== column) return <ArrowUpDown className="ml-1 h-3 w-3 opacity-30" />;
+    return currentSortOrder === "asc" ? <ArrowUp className="ml-1 h-3 w-3 text-emerald-500" /> : <ArrowDown className="ml-1 h-3 w-3 text-emerald-500" />;
   };
 
   return (
@@ -51,11 +83,37 @@ export function TitularesClient({
         </button>
       </div>
 
-      <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nombre o CUIT..." />
-        <button onClick={handleSearch} className={btnPrimary}>
-          <Search className="h-4 w-4" /> Buscar
-        </button>
+      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="flex flex-1 items-center gap-3">
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nombre o CUIT..." />
+          <button onClick={() => handleSearch()} className={btnPrimary}>
+            <Search className="h-4 w-4" /> Buscar
+          </button>
+        </div>
+        
+        <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
+
+        <div className="flex items-center gap-4">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <input 
+              type="checkbox" 
+              checked={hasGuias} 
+              onChange={(e) => {
+                setHasGuias(e.target.checked);
+                // Trigger search immediately on checkbox change
+                const params = new URLSearchParams();
+                if (search) params.set("search", search);
+                if (e.target.checked) params.set("hasGuias", "true");
+                if (currentSortBy !== "razonSocial") params.set("sortBy", currentSortBy);
+                if (currentSortOrder !== "asc") params.set("sortOrder", currentSortOrder);
+                router.push(`/titulares?${params.toString()}`);
+              }}
+              className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            <Filter className="h-3.5 w-3.5 text-zinc-400" />
+            Con guías
+          </label>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
@@ -66,11 +124,25 @@ export function TitularesClient({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Razón Social</th>
+                  <th 
+                    className="cursor-pointer px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    onClick={() => toggleSort("razonSocial")}
+                  >
+                    <div className="flex items-center">
+                      Razón Social <SortIcon column="razonSocial" />
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">CUIT</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Email</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Teléfono</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500">Guías</th>
+                  <th 
+                    className="cursor-pointer px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    onClick={() => toggleSort("guias_count")}
+                  >
+                    <div className="flex items-center justify-center">
+                      Guías <SortIcon column="guias_count" />
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Acciones</th>
                 </tr>
               </thead>
@@ -82,9 +154,13 @@ export function TitularesClient({
                     <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{t.email || "—"}</td>
                     <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{t.telefono || "—"}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-100 px-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                      <Link 
+                        href={`/guias?titularId=${t.id}`}
+                        className="inline-flex h-6 min-w-6 cursor-pointer items-center justify-center rounded-full bg-emerald-100 px-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60"
+                        title="Ver guías y remitos"
+                      >
                         {t._count.guias}
-                      </span>
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="relative inline-block">
