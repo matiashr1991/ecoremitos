@@ -10,6 +10,7 @@ import {
   Users,
   AlertTriangle,
   TrendingUp,
+  Package,
 } from "lucide-react";
 
 async function getStats() {
