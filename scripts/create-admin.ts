@@ -17,8 +17,8 @@ async function main() {
     },
     body: JSON.stringify({
       name: "Admin",
-      email: process.env.ADMIN_EMAIL || "admin@ecoremitos.com",
-      password: process.env.ADMIN_PASSWORD || "admin1234",
+      email: process.env.ADMIN_EMAIL 
+      password: process.env.ADMIN_PASSWORD 
     }),
   });
   const data = await res.json();
