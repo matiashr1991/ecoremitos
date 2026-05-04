@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { syncExpiredGuias } from "@/actions/guias.actions";
 import { cn } from "@/lib/utils";
 import {
   FileText,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 async function getStats() {
+  await syncExpiredGuias();
   const [
     guiasTotal,
     remitosTotal,

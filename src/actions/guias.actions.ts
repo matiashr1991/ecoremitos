@@ -7,6 +7,21 @@ import { revalidatePath } from "next/cache";
 import { requireRole, requireAuth } from "@/lib/auth-guard";
 import { getAuditRequestMeta } from "@/lib/audit";
 
+export async function syncExpiredGuias() {
+  return await prisma.guia.updateMany({
+    where: {
+      estado: "vigente",
+      fechaVencimiento: {
+        lt: new Date(),
+      },
+      deletedAt: null,
+    },
+    data: {
+      estado: "vencida",
+    },
+  });
+}
+
 export async function getGuias(params: {
   page?: number;
   pageSize?: number;
@@ -19,6 +34,9 @@ export async function getGuias(params: {
 }) {
   const { page = 1, pageSize = 20, search, estado, titularId, sortOrder = "desc" } = params;
   let { delegacionId, sortBy = "nrguia" } = params;
+ 
+  // Actualizar automáticamente guías vencidas antes de listar o procesar
+  await syncExpiredGuias();
 
   // Sanitizar sortBy para evitar errores de columnas inexistentes
   const validSortColumns = ["id", "nrguia", "tipo", "estado", "delegacionId", "titularId", "destino", "fechaCarga", "fechaEmision", "fechaVencimiento", "createdAt", "updatedAt"];
@@ -240,6 +258,26 @@ export async function updateGuia(data: unknown) {
         processedData[key] = new Date(value);
       } else {
         processedData[key] = value === "" ? null : value;
+      }
+    }
+  }
+
+  // Validar si la guía ya está vencida por fecha al momento de editar
+  if (processedData.estado === "vigente" && processedData.fechaVencimiento) {
+    const vencimiento = new Date(processedData.fechaVencimiento as string);
+    if (vencimiento < new Date()) {
+      processedData.estado = "vencida";
+    }
+  } else if (!processedData.estado && processedData.fechaVencimiento) {
+    // Si no se está cambiando el estado pero sí la fecha, comprobamos si debe vencer
+    const actual = await prisma.guia.findUnique({
+      where: { id },
+      select: { estado: true, fechaVencimiento: true }
+    });
+    if (actual?.estado === "vigente") {
+      const vencimiento = new Date(processedData.fechaVencimiento as string);
+      if (vencimiento < new Date()) {
+        processedData.estado = "vencida";
       }
     }
   }
