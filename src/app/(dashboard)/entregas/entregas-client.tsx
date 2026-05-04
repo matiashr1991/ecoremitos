@@ -196,7 +196,7 @@ export function EntregasClient({ delegaciones, initialHistory }: EntregasClientP
               </div>
               <div>
                 <p className="font-medium text-zinc-900 dark:text-zinc-100">Guías (Talonarios)</p>
-                <p>Las guías suelen entregarse en talonarios de 25 unidades. Al entregarse, quedan marcadas como "Asignadas" a la delegación.</p>
+                <p>Las guías suelen entregarse en talonarios de 25 unidades. Al entregarse, quedan marcadas como "Disponibles" a la delegación.</p>
               </div>
             </div>
             <div className="flex gap-3">

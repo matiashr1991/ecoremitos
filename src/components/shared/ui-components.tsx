@@ -35,7 +35,7 @@ export function Badge({ children, className, variant = "default" }: { children: 
 
 const estadoLabels: Record<string, string> = {
   en_blanco: "En blanco",
-  asignada: "Asignada",
+  asignada: "Disponible",
   emitida: "Emitida",
   vigente: "Vigente",
   vencida: "Vencida",

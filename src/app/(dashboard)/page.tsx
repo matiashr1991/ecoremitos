@@ -19,9 +19,11 @@ async function getStats() {
     remitosTotal,
     delegacionesTotal,
     titularesTotal,
-    guiasStock, // En blanco o asignadas (no emitidas)
-    guiasVigentes, // Emitidas con remitos o deposito
-    guiasIncompletas, // Vigentes pero sin titular (error de integridad)
+    guiasStock,
+    remitosStock,
+    guiasVigentes,
+    remitosUso,
+    guiasIncompletas,
     guiasPorEstado,
     recentActivity,
   ] = await Promise.all([
@@ -32,8 +34,14 @@ async function getStats() {
     prisma.guia.count({
       where: { deletedAt: null, estado: { in: ["en_blanco", "asignada"] } },
     }),
+    prisma.remito.count({
+      where: { deletedAt: null, estado: "disponible" },
+    }),
     prisma.guia.count({
       where: { deletedAt: null, estado: "vigente", titularId: { not: null } },
+    }),
+    prisma.remito.count({
+      where: { deletedAt: null, estado: { notIn: ["disponible", "anulado"] } },
     }),
     prisma.guia.count({
       where: { deletedAt: null, estado: "vigente", titularId: null },
@@ -55,7 +63,9 @@ async function getStats() {
     delegacionesTotal,
     titularesTotal,
     guiasStock,
+    remitosStock,
     guiasVigentes,
+    remitosUso,
     guiasIncompletas,
     guiasPorEstado,
     recentActivity: recentActivity.map((log: any) => ({
@@ -107,7 +117,7 @@ export default async function DashboardPage() {
 
   const cards = [
     {
-      title: "Stock Disponible",
+      title: "Guías en Stock",
       value: stats.guiasStock,
       icon: Package,
       color: "emerald",
@@ -117,24 +127,14 @@ export default async function DashboardPage() {
       textColor: "text-emerald-700 dark:text-emerald-400",
     },
     {
-      title: "Total Remitos",
-      value: stats.remitosTotal,
+      title: "Remitos en Stock",
+      value: stats.remitosStock,
       icon: Truck,
       color: "blue",
       gradient: "from-blue-500 to-indigo-600",
       bgLight: "bg-blue-50",
       bgDark: "dark:bg-blue-950/30",
       textColor: "text-blue-700 dark:text-blue-400",
-    },
-    {
-      title: "Delegaciones",
-      value: stats.delegacionesTotal,
-      icon: Building2,
-      color: "violet",
-      gradient: "from-violet-500 to-purple-600",
-      bgLight: "bg-violet-50",
-      bgDark: "dark:bg-violet-950/30",
-      textColor: "text-violet-700 dark:text-violet-400",
     },
     {
       title: "Titulares",
@@ -157,7 +157,17 @@ export default async function DashboardPage() {
       textColor: "text-cyan-700 dark:text-cyan-400",
     },
     {
-      title: "Sin Titular (Error)",
+      title: "Remitos en Uso",
+      value: stats.remitosUso,
+      icon: Truck,
+      color: "indigo",
+      gradient: "from-indigo-500 to-blue-600",
+      bgLight: "bg-indigo-50",
+      bgDark: "dark:bg-indigo-950/30",
+      textColor: "text-indigo-700 dark:text-indigo-400",
+    },
+    {
+      title: "Guías sin Titular",
       value: stats.guiasIncompletas,
       icon: AlertTriangle,
       color: "red",
@@ -221,8 +231,9 @@ export default async function DashboardPage() {
           </p>
           <div className="mt-8 space-y-4">
             {stats.guiasPorEstado
+              .filter(item => item.estado !== "en_blanco")
               .sort((a, b) => {
-                const order = ["intervenida", "vencida", "vigente", "asignada", "en_blanco"];
+                const order = ["intervenida", "vencida", "vigente", "asignada"];
                 return order.indexOf(a.estado) - order.indexOf(b.estado);
               })
               .map((item: any) => {
@@ -233,7 +244,7 @@ export default async function DashboardPage() {
                 
                 const labels: Record<string, string> = {
                   en_blanco: "En Blanco (Sin asignar)",
-                  asignada: "Asignadas (En Delegación)",
+                  asignada: "Disponibles (En Delegación)",
                   vigente: "Vigentes (Con Remitos)",
                   vencida: "Vencidas (Expiradas)",
                   intervenida: "Intervenidas (Bloqueadas/Irregular)",

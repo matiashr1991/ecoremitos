@@ -33,7 +33,7 @@ type Delegacion = { id: number; nombre: string };
 
 const guiaEstadoOpciones = [
   { value: "en_blanco", label: "En blanco" },
-  { value: "asignada", label: "Asignada" },
+  { value: "asignada", label: "Disponible" },
   { value: "vigente", label: "Vigente" },
   { value: "vencida", label: "Vencida" },
   { value: "intervenida", label: "Intervenida" },
@@ -45,7 +45,7 @@ const guiaFiltroOpciones = [
   { value: "normal", label: "Guías normales" },
   { value: "vencida", label: "Vencidas" },
   { value: "en_blanco", label: "En blanco" },
-  { value: "asignada", label: "Asignada" },
+  { value: "asignada", label: "Disponible" },
   { value: "intervenida", label: "Intervenidas" },
 ];
 
