@@ -12,14 +12,14 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-async function getStats() {
   const [
     guiasTotal,
     remitosTotal,
     delegacionesTotal,
     titularesTotal,
-    guiasSinTitular,
-    guiasVigentes,
+    guiasStock, // En blanco o asignadas (no emitidas)
+    guiasVigentes, // Emitidas con remitos o deposito
+    guiasIncompletas, // Vigentes pero sin titular (error de integridad)
     guiasPorEstado,
     recentActivity,
   ] = await Promise.all([
@@ -28,9 +28,14 @@ async function getStats() {
     prisma.delegacion.count({ where: { deletedAt: null, activa: true } }),
     prisma.titular.count({ where: { deletedAt: null, activo: true } }),
     prisma.guia.count({
-      where: { deletedAt: null, titularId: null, estado: { not: "en_blanco" } },
+      where: { deletedAt: null, estado: { in: ["en_blanco", "asignada"] } },
     }),
-    prisma.guia.count({ where: { deletedAt: null, estado: "vigente" } }),
+    prisma.guia.count({
+      where: { deletedAt: null, estado: "vigente", titularId: { not: null } },
+    }),
+    prisma.guia.count({
+      where: { deletedAt: null, estado: "vigente", titularId: null },
+    }),
     prisma.guia.groupBy({
       by: ["estado"],
       where: { deletedAt: null },
@@ -47,8 +52,9 @@ async function getStats() {
     remitosTotal,
     delegacionesTotal,
     titularesTotal,
-    guiasSinTitular,
+    guiasStock,
     guiasVigentes,
+    guiasIncompletas,
     guiasPorEstado,
     recentActivity: recentActivity.map((log: any) => ({
       ...log,
@@ -99,9 +105,9 @@ export default async function DashboardPage() {
 
   const cards = [
     {
-      title: "Total Guías",
-      value: stats.guiasTotal,
-      icon: FileText,
+      title: "Stock Disponible",
+      value: stats.guiasStock,
+      icon: Package,
       color: "emerald",
       gradient: "from-emerald-500 to-green-600",
       bgLight: "bg-emerald-50",
@@ -139,7 +145,7 @@ export default async function DashboardPage() {
       textColor: "text-amber-700 dark:text-amber-400",
     },
     {
-      title: "Guías Vigentes",
+      title: "Guías en Uso",
       value: stats.guiasVigentes,
       icon: TrendingUp,
       color: "cyan",
@@ -149,8 +155,8 @@ export default async function DashboardPage() {
       textColor: "text-cyan-700 dark:text-cyan-400",
     },
     {
-      title: "Sin Titular",
-      value: stats.guiasSinTitular,
+      title: "Sin Titular (Error)",
+      value: stats.guiasIncompletas,
       icon: AlertTriangle,
       color: "red",
       gradient: "from-red-500 to-rose-600",

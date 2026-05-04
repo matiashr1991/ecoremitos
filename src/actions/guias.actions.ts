@@ -258,8 +258,31 @@ export async function updateGuia(data: unknown) {
     }
   }
 
-  if (tipoActualizado === "normal") {
-    processedData.deposito = false;
+  // Validación de integridad para estado Vigente
+  if (processedData.estado === "vigente") {
+    // Si no es depósito, debe tener un titular asignado
+    if (!processedData.titularId) {
+      // Si el titularId no viene en el update, lo buscamos en la base de datos actual
+      const actual = await prisma.guia.findUnique({
+        where: { id },
+        select: { titularId: true, tipo: true, deposito: true },
+      });
+      if (
+        actual &&
+        !actual.titularId &&
+        !processedData.titularId &&
+        processedData.tipo !== "deposito" &&
+        !actual.deposito
+      ) {
+        return {
+          error: {
+            _form: [
+              "No se puede poner una guía normal en estado Vigente sin asignar un titular.",
+            ],
+          },
+        };
+      }
+    }
   }
 
   try {
