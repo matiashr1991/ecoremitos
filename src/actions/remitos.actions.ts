@@ -31,7 +31,12 @@ export async function getRemitos(params: {
   if (soloLibres) where.guiaId = null;
   if (search) {
     const num = parseInt(search);
-    if (!isNaN(num)) where.nrremito = num;
+    if (!isNaN(num)) {
+      where.OR = [
+        { nrremito: num },
+        { guia: { nrguia: num } }
+      ];
+    }
   }
 
   const [remitos, total] = await Promise.all([

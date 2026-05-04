@@ -72,7 +72,7 @@ export function RemitosClient({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <SearchInput value={search} onChange={setSearch} placeholder="Buscar Nro remito..." />
+        <SearchInput value={search} onChange={setSearch} placeholder="Buscar Nro remito o guía..." />
         <SelectFilter value={estado} onChange={setEstado} options={remitoEstados} placeholder="Todos los estados" />
         <SelectFilter value={delegacionId} onChange={setDelegacionId}
           options={delegaciones.map((d) => ({ value: d.id.toString(), label: d.nombre }))} placeholder="Todas las delegaciones" />
