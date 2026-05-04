@@ -8,18 +8,38 @@ import { requireRole, requireAuth } from "@/lib/auth-guard";
 import { getAuditRequestMeta } from "@/lib/audit";
 
 export async function syncExpiredGuias() {
-  return await prisma.guia.updateMany({
-    where: {
-      estado: "vigente",
-      fechaVencimiento: {
-        lt: new Date(),
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  
+  try {
+    const lastCheck = await prisma.configuracion.findUnique({ 
+      where: { clave: "LAST_EXPIRATION_CHECK" } 
+    });
+
+    if (lastCheck?.valor === today) return;
+
+    const res = await prisma.guia.updateMany({
+      where: {
+        estado: "vigente",
+        fechaVencimiento: {
+          lt: new Date(),
+        },
+        deletedAt: null,
       },
-      deletedAt: null,
-    },
-    data: {
-      estado: "vencida",
-    },
-  });
+      data: {
+        estado: "vencida",
+      },
+    });
+
+    await prisma.configuracion.upsert({
+      where: { clave: "LAST_EXPIRATION_CHECK" },
+      update: { valor: today },
+      create: { clave: "LAST_EXPIRATION_CHECK", valor: today },
+    });
+
+    return res;
+  } catch (error) {
+    console.error("Error syncing expired guias:", error);
+  }
 }
 
 export async function getGuias(params: {
